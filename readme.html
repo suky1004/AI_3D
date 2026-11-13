@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI 패션디자인 스튜디오</title>
+<style>
+:root{--ink:#24263a;--muted:#777b8d;--line:#e6e7ef;--purple:#6558d3;--purple2:#5145bd;--bg:#f5f6fb}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Pretendard","Noto Sans KR",Arial,sans-serif}
+.app{max-width:1180px;margin:auto;padding:30px 24px 42px}
+header{display:flex;justify-content:space-between;align-items:center;gap:15px;margin-bottom:24px}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:46px;height:46px;border-radius:15px;background:var(--purple);color:white;display:grid;place-items:center;font-size:24px}
+h1{font-size:clamp(21px,3vw,29px);margin:0;letter-spacing:-.7px}
+.subtitle{margin:6px 0 0;color:var(--muted);font-size:14px}
+.tag{background:#eeedff;color:var(--purple2);padding:8px 12px;border-radius:30px;font-size:11px;font-weight:800}
+.intro{color:#606579;font-size:14px;line-height:1.7;margin:0 0 22px}
+.workspace{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.panel{background:white;border:1px solid var(--line);border-radius:19px;padding:20px;min-width:0;box-shadow:0 5px 18px #28304a08}
+.panel-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:15px}
+.panel-title{display:flex;align-items:center;gap:9px;font-weight:800;font-size:16px}
+.step{width:27px;height:27px;border-radius:9px;background:#efeeff;color:var(--purple);display:grid;place-items:center;font-size:13px}
+.hint{font-size:11px;color:var(--muted)}
+.dropzone{min-height:360px;border:2px dashed #c9c7e8;border-radius:15px;background:#fafaff;display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;position:relative;overflow:hidden;cursor:default}
+.dropzone.dragover{border-color:var(--purple);background:#f2f0ff}
+.upload-guide{display:flex;align-items:center;flex-direction:column;gap:11px}
+.upload-icon{width:62px;height:62px;border-radius:20px;background:#eeedff;color:var(--purple);display:grid;place-items:center;font-size:29px}
+.drop-main{font-weight:800;font-size:15px}
+.drop-sub{color:var(--muted);font-size:12px;line-height:1.7}
+.upload-btn{border:0;background:var(--purple);color:white;border-radius:12px;padding:11px 18px;font-size:13px;font-weight:800;cursor:pointer;box-shadow:0 4px 12px #6558d32e;transition:background .15s}
+.upload-btn:hover{background:var(--purple2)}
+.preview{display:none;max-width:100%;max-height:440px;object-fit:contain;border-radius:10px;user-select:none;-webkit-user-drag:none}
+.preview-tools{display:none;position:absolute;right:11px;top:11px;gap:6px;z-index:5}
+.small-btn{border:0;background:#29283dcc;color:white;border-radius:20px;padding:8px 11px;font-size:11px;cursor:pointer}
+.small-btn:hover{background:#29283d}
+input[type=file]{display:none}
+.result-area{min-height:360px;border:1px solid #e7e5f7;border-radius:15px;background:linear-gradient(145deg,#fbfaff,#f3f2fc);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden;padding:18px}
+.result-placeholder{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;color:#9293a8}
+.mannequin{font-size:66px;opacity:.55}
+.result-placeholder strong{font-size:14px;color:#666b80}
+.result-placeholder span{font-size:12px;line-height:1.7}
+.result-image{display:none;max-width:100%;max-height:460px;object-fit:contain;border-radius:10px}
+.loading{display:none;flex-direction:column;align-items:center;gap:14px;text-align:center;color:#555a70}
+.spinner{width:42px;height:42px;border:4px solid #dedcf8;border-top-color:var(--purple);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.status{min-height:20px;margin:12px 2px 0;color:var(--muted);font-size:12px;line-height:1.5}
+.actions{display:flex;justify-content:center;gap:10px;margin:22px 0;flex-wrap:wrap}
+.primary{border:0;border-radius:13px;padding:15px 34px;background:var(--purple);color:white;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 8px 18px #6558d333}
+.primary:hover{background:var(--purple2)}
+.primary:disabled{opacity:.55;cursor:not-allowed}
+.secondary{display:none;border:1px solid #d9d7ef;background:white;color:var(--purple2);border-radius:13px;padding:14px 18px;font-weight:750;cursor:pointer}
+.info{background:white;border:1px solid var(--line);border-radius:15px;padding:15px 18px;color:#73788a;font-size:11px;line-height:1.7}
+.info strong{color:#42465a}
+
+/* 스케치 드로잉 캔버스 및 툴바 */
+.dropzone { position:relative; }
+.preview { width:100%;height:100%;max-height:none; }
+#drawingCanvas {
+  display:none;position:absolute;inset:0;width:100%;height:100%;
+  z-index:3;touch-action:none;cursor:crosshair;
+}
+.draw-toolbar {
+  display:none;flex-wrap:wrap;align-items:center;gap:10px;
+  padding:12px;margin-top:12px;border:1px solid #e5e3f4;
+  border-radius:12px;background:#fbfaff;
+}
+.draw-toolbar.active { display:flex; }
+.tool-group { display:flex;align-items:center;gap:7px; }
+.tool-label {font-size:11px;color:#62677b;font-weight:750;white-space:nowrap}
+.color-btn {
+  width:25px;height:25px;border:2px solid white;border-radius:50%;
+  box-shadow:0 0 0 1px #c9cad5;cursor:pointer;padding:0;
+}
+.color-btn.selected {box-shadow:0 0 0 2px var(--purple);transform:scale(1.08)}
+#customColor {width:30px;height:30px;border:0;padding:0;background:transparent;cursor:pointer}
+#brushSize {width:100px;accent-color:var(--purple);cursor:pointer}
+.tool-button {
+  border:1px solid #dedced;background:white;color:#4d5063;
+  border-radius:9px;padding:8px 10px;font-size:11px;font-weight:750;cursor:pointer;
+}
+.tool-button.active {background:#eeedff;border-color:#aaa4ed;color:#5145bd}
+.tool-button.danger {color:#c34d55}
+.brush-value {font-size:11px;color:#777b8d;min-width:25px}
+.draw-tip {width:100%;font-size:10px;color:#85899a;line-height:1.5}
+
+@media(max-width:760px){.app{padding:20px 14px 30px}.workspace{grid-template-columns:1fr;gap:14px}.panel{padding:15px}.dropzone,.result-area{min-height:285px}.preview,.result-image{max-height:350px}.primary,.secondary{width:100%}.tag{font-size:9px;padding:7px 9px}}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div class="brand"><div class="logo">✦</div><div><h1>AI 패션디자인 스튜디오</h1><p class="subtitle">나의 스케치를 3D 실사 패션 이미지로!</p></div></div>
+  <span class="tag">FASHION DESIGN LAB</span>
+</header>
+<p class="intro">직접 그린 의상 스케치를 업로드해 보세요. AI가 디자인의 형태와 특징을 참고하여 실제 촬영한 듯한 패션 이미지로 표현합니다.</p>
+
+<main class="workspace">
+<section class="panel">
+  <div class="panel-head"><div class="panel-title"><span class="step">1</span> 스케치 이미지 업로드</div><span class="hint">PNG · JPG · JPEG · WEBP</span></div>
+  <div class="dropzone" id="dropzone" aria-label="스케치 이미지 미리보기 및 드로잉 영역">
+    <div class="upload-guide" id="uploadGuide">
+      <div class="upload-icon">＋</div><div class="drop-main">스케치 이미지를 여기에 놓으세요</div>
+      <div class="drop-sub">또는 아래 버튼을 눌러 파일을 선택하세요<br>의상 전체가 잘 보이는 이미지를 권장합니다.</div>
+      <button class="upload-btn" id="uploadButton" type="button">＋ 이미지 업로드</button>
+    </div>
+    <img id="preview" class="preview" alt="업로드한 스케치 미리보기">
+    <canvas id="drawingCanvas" aria-label="스케치 위에 그림 그리기"></canvas>
+    <div class="preview-tools" id="previewTools"><button class="small-btn" id="changeImage" type="button">이미지 변경</button><button class="small-btn" id="removeImage" type="button">삭제</button></div>
+  </div>
+  <div class="draw-toolbar" id="drawToolbar" aria-label="스케치 드로잉 도구">
+    <div class="tool-group">
+      <span class="tool-label">색상</span>
+      <button class="color-btn selected" type="button" data-color="#171717" style="background:#171717" aria-label="검정"></button>
+      <button class="color-btn" type="button" data-color="#e53935" style="background:#e53935" aria-label="빨강"></button>
+      <button class="color-btn" type="button" data-color="#2563eb" style="background:#2563eb" aria-label="파랑"></button>
+      <button class="color-btn" type="button" data-color="#16a34a" style="background:#16a34a" aria-label="초록"></button>
+      <button class="color-btn" type="button" data-color="#facc15" style="background:#facc15" aria-label="노랑"></button>
+      <input id="customColor" type="color" value="#7c3aed" title="사용자 지정 색상" aria-label="사용자 지정 색상">
+    </div>
+    <div class="tool-group">
+      <label class="tool-label" for="brushSize">굵기</label>
+      <input id="brushSize" type="range" min="1" max="30" value="5">
+      <span class="brush-value" id="brushValue">5px</span>
+    </div>
+    <div class="tool-group">
+      <button class="tool-button" id="eraserBtn" type="button" aria-pressed="false">지우개</button>
+      <button class="tool-button danger" id="clearDrawingBtn" type="button">전체 지우기</button>
+    </div>
+    <div class="draw-tip">이미지 위에서 마우스, 태블릿 펜슬 또는 손가락으로 그릴 수 있습니다. 드로잉 중에는 화면 스크롤 대신 그림 그리기가 동작합니다.</div>
+  </div>
+  <input id="fileInput" type="file" accept=".png,.jpg,.jpeg,.webp,image/png,image/jpeg,image/webp">
+  <div class="status" id="uploadStatus">파일을 업로드하면 이곳에 파일 정보가 표시됩니다.</div>
+</section>
+
+<section class="panel">
+  <div class="panel-head"><div class="panel-title"><span class="step">2</span> 3D 실사 이미지 결과</div><span class="hint">AI GENERATED</span></div>
+  <div class="result-area">
+    <div class="result-placeholder" id="resultPlaceholder"><div class="mannequin">♙</div><strong>AI 변환 결과가 여기에 표시됩니다.</strong><span>스케치를 업로드한 다음<br>아래의 이미지 생성 버튼을 눌러 주세요.</span></div>
+    <div class="loading" id="loading"><div class="spinner"></div><strong>AI가 의상 디자인을 구현하고 있어요.</strong><span>이미지 생성에는 잠시 시간이 걸릴 수 있습니다.</span></div>
+    <img id="resultImage" class="result-image" alt="AI가 생성한 3D 실사 패션 이미지">
+  </div>
+  <div class="status" id="resultStatus" aria-live="polite">결과 이미지는 생성 후 저장할 수 있습니다.</div>
+</section>
+</main>
+
+<div class="actions">
+  <button class="primary" id="generateBtn" type="button">✦ AI 이미지 생성하기</button>
+  <button class="secondary" id="downloadBtn" type="button">결과 이미지 저장하기 ↓</button>
+</div>
+
+<div class="info">
+  <strong>사용 안내</strong><br>
+  이 프로그램은 Google AI Studio에서 발급한 Gemini API 키를 HTML 코드에 직접 입력해 사용합니다.
+  API 키가 포함된 HTML 파일을 다른 사람에게 전달하거나 인터넷에 공개하면 키가 노출될 수 있습니다.
+  수업용으로 제한된 환경에서 사용하고, 키 사용량과 결제 설정을 확인해 주세요.
+</div>
+</div>
+
+<script>
+/* ============================================================
+   🟧🟧🟧 API KEY 입력 영역 - 이 부분을 찾아 발급받은 키를 입력하세요 🟧🟧🟧
+
+   예시:
+   const GEMINI_API_KEY = "AIzaSy...발급받은키...";
+
+   따옴표(" ") 안에 키를 붙여넣으세요.
+   ============================================================ */
+const GEMINI_API_KEY = "AQ.Ab8RN6JHq8JeQpmfQ4aJRRK1oMkiMVvG3Cm7gces0LIcYCS6Bw";
+/* 🟧🟧🟧 API KEY 입력 끝 🟧🟧🟧 */
+
+/* 모델 설정: Google 공식 이미지 생성 문서 기준 모델 */
+const GEMINI_MODEL = "gemini-3.1-flash-image";
+const GEMINI_API_URL =
+  `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+
+const $ = (id) => document.getElementById(id);
+let selectedFile = null;
+let generatedImageUrl = null;
+
+// 드로잉 도구 상태
+const drawingCanvas = $("drawingCanvas");
+const drawCtx = drawingCanvas.getContext("2d");
+let currentColor = "#171717";
+let brushSize = 5;
+let eraserMode = false;
+let isDrawing = false;
+let activePointerId = null;
+let currentStroke = null;
+let strokes = [];
+
+function chooseFile(e){
+  if(e) e.stopPropagation();
+  $("fileInput").click();
+}
+
+// 업로드 버튼과 상단 '이미지 변경' 버튼에만 파일 선택 이벤트 연결 (영역 전체 클릭 이벤트 제거)
+$("uploadButton").addEventListener("click", chooseFile);
+$("changeImage").addEventListener("click", chooseFile);
+$("removeImage").addEventListener("click", (e) => {
+  e.stopPropagation();
+  clearImage();
+});
+$("fileInput").addEventListener("change", (e) => {
+  if(e.target.files && e.target.files[0]) loadImage(e.target.files[0]);
+});
+
+// 드래그 앤 드롭 업로드 지원 유지
+["dragenter","dragover"].forEach(type => $("dropzone").addEventListener(type, e => {
+  e.preventDefault();e.stopPropagation();$("dropzone").classList.add("dragover");
+}));
+["dragleave","drop"].forEach(type => $("dropzone").addEventListener(type, e => {
+  e.preventDefault();e.stopPropagation();$("dropzone").classList.remove("dragover");
+}));
+$("dropzone").addEventListener("drop", e => {
+  const file=e.dataTransfer.files && e.dataTransfer.files[0];
+  if(file) loadImage(file);
+});
+
+function loadImage(file){
+  const allowed=["image/png","image/jpeg","image/webp"];
+  if(!allowed.includes(file.type)){
+    alert("PNG, JPG, JPEG, WEBP 형식의 이미지만 업로드할 수 있습니다.");return;
+  }
+  selectedFile=file;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    $("preview").src=reader.result;
+    $("preview").style.display="block";
+    $("uploadGuide").style.display="none";
+    $("previewTools").style.display="flex";
+    drawingCanvas.style.display = "block";
+    $("drawToolbar").classList.add("active");
+    strokes = [];
+    requestAnimationFrame(() => resizeDrawingCanvas());
+    $("uploadStatus").textContent=`${file.name} · ${(file.size/1024/1024).toFixed(2)} MB`;
+    $("resultStatus").textContent="스케치가 준비되었습니다. 이미지 위에 직접 덧그리거나 AI 이미지 생성을 시작할 수 있습니다.";
+  };
+  reader.readAsDataURL(file);
+}
+function clearImage(){
+  selectedFile=null;$("fileInput").value="";
+  $("preview").removeAttribute("src");$("preview").style.display="none";
+  $("uploadGuide").style.display="flex";$("previewTools").style.display="none";
+  drawingCanvas.style.display="none";
+  $("drawToolbar").classList.remove("active");
+  strokes = [];
+  $("uploadStatus").textContent="파일을 업로드하면 이곳에 파일 정보가 표시됩니다.";
+}
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>resolve(String(reader.result).split(",")[1]);
+    reader.onerror=()=>reject(new Error("이미지 파일을 읽을 수 없습니다."));
+    reader.readAsDataURL(file);
+  });
+}
+function setLoading(active){
+  $("generateBtn").disabled=active;
+  $("generateBtn").textContent=active?"AI 이미지 생성 중...":"✦ AI 이미지 생성하기";
+  $("loading").style.display=active?"flex":"none";
+  if(active){
+    $("resultPlaceholder").style.display="none";
+    $("resultImage").style.display="none";
+    $("downloadBtn").style.display="none";
+  }
+}
+
+// 캔버스는 화면 크기와 무관하게 선 좌표를 0~1 비율로 저장해
+// 노트북/태블릿 화면 크기 변경 후에도 드로잉을 유지합니다.
+function resizeDrawingCanvas(){
+  if(!selectedFile || drawingCanvas.style.display === "none") return;
+  const rect = drawingCanvas.getBoundingClientRect();
+  if(!rect.width || !rect.height) return;
+  const dpr = Math.max(1, window.devicePixelRatio || 1);
+  drawingCanvas.width = Math.round(rect.width * dpr);
+  drawingCanvas.height = Math.round(rect.height * dpr);
+  drawCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  redrawStrokes();
+}
+
+function redrawStrokes(){
+  const rect = drawingCanvas.getBoundingClientRect();
+  if(!rect.width || !rect.height) return;
+  drawCtx.clearRect(0, 0, rect.width, rect.height);
+  for(const stroke of strokes){
+    if(!stroke.points.length) continue;
+    drawCtx.save();
+    drawCtx.lineCap = "round";
+    drawCtx.lineJoin = "round";
+    drawCtx.lineWidth = stroke.size;
+    drawCtx.globalCompositeOperation = stroke.eraser ? "destination-out" : "source-over";
+    drawCtx.strokeStyle = stroke.color;
+    drawCtx.fillStyle = stroke.color;
+    const first = stroke.points[0];
+    const x0 = first.x * rect.width, y0 = first.y * rect.height;
+    if(stroke.points.length === 1){
+      drawCtx.beginPath();
+      drawCtx.arc(x0, y0, stroke.size / 2, 0, Math.PI * 2);
+      drawCtx.fill();
+    } else {
+      drawCtx.beginPath();
+      drawCtx.moveTo(x0, y0);
+      for(let i=1;i<stroke.points.length;i++){
+        const pt=stroke.points[i];
+        drawCtx.lineTo(pt.x*rect.width,pt.y*rect.height);
+      }
+      drawCtx.stroke();
+    }
+    drawCtx.restore();
+  }
+}
+
+function pointerPosition(event){
+  const rect=drawingCanvas.getBoundingClientRect();
+  return {
+    x:Math.min(1,Math.max(0,(event.clientX-rect.left)/rect.width)),
+    y:Math.min(1,Math.max(0,(event.clientY-rect.top)/rect.height))
+  };
+}
+
+drawingCanvas.addEventListener("pointerdown", event=>{
+  if(!selectedFile) return;
+  event.preventDefault();
+  event.stopPropagation();
+  isDrawing=true;
+  activePointerId=event.pointerId;
+  drawingCanvas.setPointerCapture(event.pointerId);
+  currentStroke={
+    color:currentColor,size:brushSize,eraser:eraserMode,
+    points:[pointerPosition(event)]
+  };
+  strokes.push(currentStroke);
+  redrawStrokes();
+});
+
+drawingCanvas.addEventListener("pointermove", event=>{
+  if(!isDrawing || event.pointerId!==activePointerId || !currentStroke) return;
+  event.preventDefault();
+  event.stopPropagation();
+  // 펜/터치의 움직임을 포인터 이벤트로 통합 처리합니다.
+  currentStroke.points.push(pointerPosition(event));
+  redrawStrokes();
+});
+
+function finishPointer(event){
+  if(!isDrawing || (event && event.pointerId!==activePointerId)) return;
+  if(event) event.stopPropagation();
+  isDrawing=false;
+  currentStroke=null;
+  activePointerId=null;
+}
+drawingCanvas.addEventListener("pointerup",finishPointer);
+drawingCanvas.addEventListener("pointercancel",finishPointer);
+drawingCanvas.addEventListener("lostpointercapture",finishPointer);
+
+document.querySelectorAll(".color-btn").forEach(button=>{
+  button.addEventListener("click",()=>{
+    currentColor=button.dataset.color;
+    eraserMode=false;
+    $("eraserBtn").classList.remove("active");
+    $("eraserBtn").setAttribute("aria-pressed","false");
+    document.querySelectorAll(".color-btn").forEach(b=>b.classList.toggle("selected",b===button));
+  });
+});
+$("customColor").addEventListener("input",event=>{
+  currentColor=event.target.value;
+  eraserMode=false;
+  $("eraserBtn").classList.remove("active");
+  $("eraserBtn").setAttribute("aria-pressed","false");
+  document.querySelectorAll(".color-btn").forEach(b=>b.classList.remove("selected"));
+});
+$("brushSize").addEventListener("input",event=>{
+  brushSize=Number(event.target.value);
+  $("brushValue").textContent=`${brushSize}px`;
+});
+$("eraserBtn").addEventListener("click",()=>{
+  eraserMode=!eraserMode;
+  $("eraserBtn").classList.toggle("active",eraserMode);
+  $("eraserBtn").setAttribute("aria-pressed",String(eraserMode));
+});
+$("clearDrawingBtn").addEventListener("click",()=>{
+  if(!strokes.length) return;
+  if(confirm("스케치 위에 그린 내용을 모두 지울까요?")){
+    strokes=[];
+    redrawStrokes();
+  }
+});
+window.addEventListener("resize",resizeDrawingCanvas);
+
+// AI에는 원본 파일이 아니라 학생이 덧그린 내용까지 합쳐진 이미지를 전달합니다.
+async function getDrawingMergedImage(){
+  if(!selectedFile) throw new Error("스케치 이미지가 없습니다.");
+  const imageBitmap=await createImageBitmap(selectedFile);
+  const output=document.createElement("canvas");
+  output.width=imageBitmap.width;
+  output.height=imageBitmap.height;
+  const ctx=output.getContext("2d");
+  ctx.drawImage(imageBitmap,0,0,output.width,output.height);
+
+  // 화면의 캔버스 드로잉을 원본 이미지의 좌표계에 맞춰 합성합니다.
+  const drawing=document.createElement("canvas");
+  drawing.width=drawingCanvas.width;
+  drawing.height=drawingCanvas.height;
+  drawing.getContext("2d").drawImage(drawingCanvas,0,0);
+  ctx.drawImage(drawing,0,0,output.width,output.height);
+  const dataUrl=output.toDataURL(selectedFile.type==="image/jpeg"?"image/jpeg":selectedFile.type,0.95);
+  return {mimeType:selectedFile.type==="image/jpeg"?"image/jpeg":selectedFile.type,data:dataUrl.split(",")[1]};
+}
+
+async function generateImage(){
+  if(!selectedFile){alert("먼저 패션 스케치 이미지를 업로드해 주세요.");return;}
+  if(!GEMINI_API_KEY || GEMINI_API_KEY.includes("여기에_")){
+    alert("HTML 코드의 주황색 API KEY 입력 영역에 발급받은 키를 입력한 후 저장해 주세요.");return;
+  }
+
+  setLoading(true);
+  $("resultStatus").textContent="AI 이미지 생성 요청을 보내고 있습니다.";
+
+  try{
+    const mergedImage=await getDrawingMergedImage();
+    const base64Data=mergedImage.data;
+    const prompt=`
+You are a professional fashion visualization artist and 3D apparel designer.
+Transform the uploaded 2D hand-drawn fashion clothing sketch into a highly photorealistic 3D fashion photograph.
+
+IMPORTANT REQUIREMENTS:
+- Preserve the student's original garment design, silhouette, proportions, seams, collar, sleeves, pockets, closures, patterns, colors and distinctive details as faithfully as possible.
+- Interpret the drawing as a real, wearable garment made from realistic fabric with physically accurate texture, folds, stitching, thickness and material.
+- Show the complete outfit clearly without cropping important garment parts.
+- Present the clothing on a realistic fashion model or a professional dress form/mannequin.
+- Use professional fashion studio photography, soft balanced lighting, realistic shadows and a clean neutral studio background.
+- The final result must look like a real 3D product photograph, not a drawing, painting, cartoon or flat illustration.
+- Do not add text, labels, logos, watermarks or unrelated accessories.
+Respect the student's creative design. Do not redesign the garment.
+`;
+    const response=await fetch(GEMINI_API_URL,{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "x-goog-api-key":GEMINI_API_KEY
+      },
+      body:JSON.stringify({
+        contents:[{
+          parts:[
+            {inlineData:{mimeType:mergedImage.mimeType,data:base64Data}},
+            {text:prompt}
+          ]
+        }],
+        generationConfig:{responseModalities:["TEXT","IMAGE"]}
+      })
+    });
+
+    const data=await response.json();
+    if(!response.ok){
+      const message=data?.error?.message || `API 요청 오류 (${response.status})`;
+      throw new Error(message);
+    }
+    const parts=data?.candidates?.[0]?.content?.parts || [];
+    const imagePart=parts.find(part=>part.inlineData && part.inlineData.data);
+    if(!imagePart){
+      const textPart=parts.find(part=>part.text);
+      throw new Error(textPart?.text || "이미지 결과가 반환되지 않았습니다. 모델 지원 여부와 API 권한을 확인해 주세요.");
+    }
+
+    generatedImageUrl=`data:${imagePart.inlineData.mimeType || "image/png"};base64,${imagePart.inlineData.data}`;
+    $("resultImage").src=generatedImageUrl;
+    $("resultImage").style.display="block";
+    $("resultPlaceholder").style.display="none";
+    $("downloadBtn").style.display="inline-block";
+    $("resultStatus").textContent="이미지 생성이 완료되었습니다. 결과 이미지를 저장할 수 있습니다.";
+  }catch(error){
+    console.error(error);
+    $("resultPlaceholder").style.display="flex";
+    $("resultStatus").textContent=`생성 실패: ${error.message}`;
+    alert(`이미지를 생성하지 못했습니다.\n\n${error.message}\n\nAPI 키, 모델 접근 권한, 인터넷 연결 및 사용량 한도를 확인해 주세요.`);
+  }finally{
+    setLoading(false);
+  }
+}
+
+$("generateBtn").addEventListener("click",generateImage);
+$("downloadBtn").addEventListener("click",()=>{
+  if(!generatedImageUrl)return;
+  const link=document.createElement("a");
+  link.href=generatedImageUrl;
+  link.download="AI_패션디자인_3D_결과.png";
+  document.body.appendChild(link);link.click();link.remove();
+});
+</script>
+</body>
+</html>
